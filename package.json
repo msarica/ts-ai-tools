@@ -1,11 +1,17 @@
 {
-  "name": "ts-ai-tools",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
+	"name": "ts-ai-tools",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"memoizee": "0.4.14"
+	},
+	"devDependencies": {
+		"@types/memoizee": "0.4.4"
+	}
 }

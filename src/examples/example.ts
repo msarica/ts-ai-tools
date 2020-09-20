@@ -7,7 +7,7 @@ import {
 	depthLimitedSearch,
 	iterativeDeepeningSearch,
 } from '../search-algorithms/uninformed';
-import { printSolution, WJ3 } from '../problems/wj3';
+import { WJ3, WJAction } from '../problems/wj3';
 import { compareSearchers, Problem } from '../search';
 import { Node } from '../node';
 import { PriorityQueue, show } from '../utils';
@@ -18,15 +18,16 @@ import {
 } from '../search-algorithms/informed';
 
 const defaultSearchers = [
-	// breadthFirstGraphSearch, depthFirstGraphSearch,
+	// breadthFirstGraphSearch,
+	depthFirstGraphSearch,
 	// depthFirstTreeSearch,
 	// (problem: WJ3) =>
 	// 	bestFirstGraphSearch(problem, (node: Node) => problem.h(node)),
 	// (problem: Problem) => depthLimitedSearch(problem, 10),
 	// iterativeDeepeningSearch,
-	// aStarSearch,
+	aStarSearch,
 	// recursiveBestFirstSearch,
-	hillClimbing,
+	// hillClimbing,
 ];
 
 export function wj3Solve(
@@ -51,10 +52,18 @@ export function wj3Solve(
 
 		const solution = alg(problem);
 
-		if (solution) {
-			printSolution(solution);
-			sucessfulSearchers.push(alg);
+		if (!solution) {
+			console.log('No solution found 🙁');
+			continue;
 		}
+
+		solution.printSolution((n) => {
+			const a = n.action as WJAction;
+
+			if (a.action == 'pour') return `pour ${a.which}, ${a.to}`;
+			return `${a.action} ${a.which}`;
+		});
+		sucessfulSearchers.push(alg);
 	}
 	console.log(
 		'SUMMARY: algorithm  <successors  goal_tests  states_generated  solution>'
@@ -103,22 +112,3 @@ for (let test of tests) {
 		console.error(err);
 	}
 }
-
-// show();
-
-// const q = new PriorityQueue(
-// 	'min',
-// 	(x: number) => x + 1,
-// 	(x, y) => x == y
-// );
-// q.push(5);
-// q.push(1);
-// q.push(10);
-// // console.log(q.pop());
-// q.show();
-
-// console.log(q.sortValue(5));
-
-// q.remove(5);
-
-// q.show();

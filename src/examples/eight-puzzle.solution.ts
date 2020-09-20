@@ -9,7 +9,7 @@ import {
 } from '../search-algorithms/uninformed';
 import { compareSearchers, Problem } from '../search';
 import { Node } from '../node';
-import { PriorityQueue, show } from '../utils';
+import { PriorityQueue, show, memoize } from '../utils';
 import { EightPuzzle } from '../problems/eight-puzzle';
 import {
 	aStarSearch,
@@ -31,8 +31,8 @@ const defaultSearchers = [
 ];
 
 export function solve8Puzzle(
-	start: number[],
-	goal: number[],
+	start: string,
+	goal: string,
 	searchers = defaultSearchers
 ) {
 	const problem = new EightPuzzle(start, goal);
@@ -55,10 +55,12 @@ export function solve8Puzzle(
 
 		const solution = alg(problem);
 
-		if (solution) {
-			printSolution(solution);
-			sucessfulSearchers.push(alg);
+		if (!solution) {
+			console.log('No solution found 🙁');
+			continue;
 		}
+		solution.printSolution((n) => n.state);
+		sucessfulSearchers.push(alg);
 	}
 	console.log(
 		'SUMMARY: algorithm  <successors  goal_tests  states_generated  solution>'
@@ -71,11 +73,11 @@ export function solve8Puzzle(
 
 const tests = [
 	[
-		[8, 0, 6, 5, 4, 7, 2, 3, 1],
+		// [0, 6, 1, 7, 2, 4, 3, 7, 8],
 		// [6, 2, 3, 5, 1, 7, 8, 4, 0],
 		// [1, 2, 3, 4, 5, 6, 7, 0, 8],
-
-		[1, 2, 3, 4, 5, 6, 7, 8, 0],
+		'061724358',
+		'012345678',
 	],
 ];
 
@@ -90,31 +92,26 @@ for (let test of tests) {
 	}
 }
 
-/**
- * If a path to a goal was found, prints the cost and the sequence of actions
-    and states on a path from the initial state to the goal found
- * @param solution 
- */
-export function printSolution(solution: Node) {
-	if (!solution) {
-		console.log('No solution found 🙁');
-		return;
-	}
+// /**
+//  * If a path to a goal was found, prints the cost and the sequence of actions
+//     and states on a path from the initial state to the goal found
+//  * @param solution
+//  */
+// export function printSolution(solution: Node) {
+// 	const pathCost = solution.pathCost;
+// 	const str = ['Path of cost: ', pathCost, ': '];
+// 	str.push(solution.path().length, ': ');
 
-	const pathCost = solution.pathCost;
-	const str = ['Path of cost: ', pathCost, ': '];
-	str.push(solution.path().length, ': ');
+// 	for (let node of solution.path()) {
+// 		if (!node.action) {
+// 			// if undefined/null initial state
+// 			str.push(node.state.toString(), ' ');
+// 		} else {
+// 			const a = node.action as string;
 
-	for (let node of solution.path()) {
-		if (!node.action) {
-			// if undefined/null initial state
-			str.push(node.state.toString(), ' ');
-		} else {
-			const a = node.action as string;
+// 			str.push(`- (${a}) -> [`, node.state.toString(), '] ');
+// 		}
+// 	}
 
-			str.push(`- (${a}) -> [`, node.state.toString(), '] ');
-		}
-	}
-
-	console.log(str.join(''));
-}
+// 	console.log(str.join(''));
+// }

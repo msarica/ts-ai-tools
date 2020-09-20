@@ -1,5 +1,7 @@
 import { Node } from './node';
 
+import m from 'memoizee';
+
 const memoizedValues: any = {};
 
 let fromCache = 0;
@@ -13,21 +15,22 @@ let firstTime = 0;
  * @param maxSize 
  */
 export function memoize(fn: Function, slot: string): Function {
-	const memoized_fn = function (...args: any[]) {
-		const str = slot + args.toString();
-		if (memoizedValues[str]) {
-			fromCache += 1;
-			return memoizedValues[str];
-		}
+	return m(fn as any);
+	// const memoized_fn = function (...args: any[]) {
+	// 	const str = slot + args.toString();
+	// 	if (memoizedValues[str]) {
+	// 		fromCache += 1;
+	// 		return memoizedValues[str];
+	// 	}
 
-		firstTime += 1;
-		const result = fn(...args);
+	// 	firstTime += 1;
+	// 	const result = fn(...args);
 
-		memoizedValues[str] = result;
-		return result;
-	};
+	// 	memoizedValues[str] = result;
+	// 	return result;
+	// };
 
-	return memoized_fn;
+	// return memoized_fn;
 }
 
 export function show() {
@@ -37,6 +40,7 @@ export function show() {
 
 export class NodeArray extends Array {
 	// list: Node[] = [];
+	map_ = new Map();
 
 	constructor(array: Node[] = []) {
 		super();
@@ -44,11 +48,20 @@ export class NodeArray extends Array {
 	}
 
 	push(...x: Node[]) {
+		x.forEach((xx) => this.map_.set(xx.hash(), true));
 		return super.push(...x);
 	}
 
 	has(x: Node) {
-		return this.some((z: Node) => z.equalsTo(x));
+		return this.map_.has(x.hash());
+		// return this.some((z: Node) => z.equalsTo(x));
+	}
+
+	delete(x: Node) {
+		this.map_.delete(x.hash());
+		const i = this.findIndex((ii: Node) => ii.equalsTo(x));
+
+		return this.splice(i, 0);
 	}
 }
 
@@ -65,6 +78,9 @@ export class PriorityQueue<T> {
 		insertOrder: number;
 		obj: T;
 	}[] = [];
+
+	heapMap = new Map();
+
 	counter = 0;
 
 	get length() {
@@ -74,7 +90,8 @@ export class PriorityQueue<T> {
 	constructor(
 		public order: 'min' | 'max' = 'min',
 		public f: Function,
-		public eq: (o1: T, o2: T) => boolean
+		public eq: (o1: T, o2: T) => boolean,
+		public hashFn: (o: T) => string
 	) {
 		// super();
 		// if (order === 'min') {
@@ -87,7 +104,8 @@ export class PriorityQueue<T> {
 	}
 
 	has(x: any) {
-		return this.heap.some((i) => this.eq(i.obj, x));
+		return this.heapMap.has(x.toString());
+		// return this.heap.some((i) => this.eq(i.obj, x));
 	}
 
 	sortValue(x: T) {
@@ -107,6 +125,7 @@ export class PriorityQueue<T> {
 				obj: xx,
 			};
 
+			this.heapMap.set(this.hashFn(xx), true);
 			for (let i = 0; i < this.heap.length; i++) {
 				const o = this.heap[i];
 
@@ -119,20 +138,13 @@ export class PriorityQueue<T> {
 		};
 		x.forEach((xx) => r(xx));
 
-		// this.heap = this.heap.sort((a, b) => {
-		// 	const x = a.sortValue - b.sortValue;
-		// 	return x;
-		// 	// if (x !== 0) return x;
-		// 	// return b.insertOrder - a.insertOrder;
-		// });
-		// return r;
-		this.heap.reduce((prev, cur) => {
-			if (prev && prev.sortValue > cur.sortValue) {
-				throw new Error('not sorted');
-			}
+		// this.heap.reduce((prev, cur) => {
+		// 	if (prev && prev.sortValue > cur.sortValue) {
+		// 		throw new Error('not sorted');
+		// 	}
 
-			return cur;
-		});
+		// 	return cur;
+		// });
 	}
 
 	remove(x: T) {
@@ -140,7 +152,7 @@ export class PriorityQueue<T> {
 		if (idx === -1) {
 			return;
 		}
-
+		this.heapMap.delete(this.hashFn(x));
 		this.heap.splice(idx, 1);
 	}
 

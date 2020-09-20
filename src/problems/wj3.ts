@@ -1,19 +1,19 @@
 import { Problem } from '../search';
 import { Node } from '../node';
 
-export interface Action {
+export interface WJAction {
 	action: 'fill' | 'dump' | 'pour';
 	which: number;
 	to?: number;
 }
 
-export class WJ3 extends Problem<number[], Action> {
+export class WJ3 extends Problem<number[], WJAction> {
 	constructor(private capacities: number[], initial: number[], goal: number[]) {
 		super(initial, goal);
 	}
 
-	actions(state: number[]): Action[] {
-		const legal: Action[] = [];
+	actions(state: number[]): WJAction[] {
+		const legal: WJAction[] = [];
 
 		state.forEach((j, ji) => {
 			const c = this.capacities[ji];
@@ -46,7 +46,7 @@ export class WJ3 extends Problem<number[], Action> {
 		return legal;
 	}
 
-	result(state: number[], action_: Action) {
+	result(state: number[], action_: WJAction) {
 		const { action, which, to } = action_;
 		state = [...state];
 
@@ -95,7 +95,7 @@ export class WJ3 extends Problem<number[], Action> {
 	pathCost(
 		cost: number,
 		state1: number[],
-		action: Action,
+		action: WJAction,
 		state2: number[]
 	): number {
 		if (action.action === 'fill') {
@@ -142,37 +142,4 @@ export class WJ3 extends Problem<number[], Action> {
 			return prev;
 		}, 0);
 	}
-}
-
-/**
- * If a path to a goal was found, prints the cost and the sequence of actions
-    and states on a path from the initial state to the goal found
- * @param solution 
- */
-export function printSolution(solution: Node) {
-	if (!solution) {
-		console.log('No solution found 🙁');
-		return;
-	}
-
-	const pathCost = solution.pathCost;
-	const str = ['Path of cost: ', pathCost, ': '];
-	str.push(solution.path().length, ': ');
-
-	for (let node of solution.path()) {
-		if (!node.action) {
-			// if undefined/null initial state
-			str.push(node.state.toString(), ' ');
-		} else {
-			const a = node.action as Action;
-
-			str.push(
-				`- (${a.action}, ${a.which}, ${a.to || ''}) -> [`,
-				node.state.toString(),
-				'] '
-			);
-		}
-	}
-
-	console.log(str.join(''));
 }

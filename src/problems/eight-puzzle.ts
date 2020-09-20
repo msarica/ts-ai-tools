@@ -1,17 +1,17 @@
 import { Problem } from '../search';
 import { Node } from '../node';
 
-export class EightPuzzle extends Problem<number[], string> {
-	constructor(initial: number[], goal: number[]) {
+export class EightPuzzle extends Problem<string, string> {
+	constructor(initial: string, goal: string) {
 		super(initial, goal);
 	}
 
 	toString(): string {
-		return `8Puzzle: ${this.initial.join(',')}, ${this.goal.join(',')}`;
+		return `8Puzzle: ${this.initial}, ${this.goal}`;
 	}
 
-	blankSquareIndex(state: number[]) {
-		return state.indexOf(0);
+	blankSquareIndex(state: string) {
+		return state.indexOf('0');
 	}
 
 	remove(list: string[], s: string) {
@@ -25,7 +25,7 @@ export class EightPuzzle extends Problem<number[], string> {
         in any given state of the environment
      * @param state 
      */
-	actions(state: number[]): string[] {
+	actions(state: string): string[] {
 		let possibleMoves = ['up', 'down', 'left', 'right'];
 
 		let indexBlankSquare = this.blankSquareIndex(state);
@@ -55,9 +55,9 @@ export class EightPuzzle extends Problem<number[], string> {
      * @param state 
      * @param action 
      */
-	result(state: number[], action: string) {
+	result(state: string, action: string) {
 		let blankIndex = this.blankSquareIndex(state);
-		let newState = [...state];
+		let newState = state.split('');
 
 		const delta = {
 			up: -3,
@@ -70,19 +70,19 @@ export class EightPuzzle extends Problem<number[], string> {
 
 		newState[blankIndex] = state[neighbor];
 		newState[neighbor] = state[blankIndex];
-		return newState;
+		return newState.join('');
 	}
 
-	goalTest(state: number[]): boolean {
-		return state.every((v, i) => v === this.goal[i]);
+	goalTest(state: string): boolean {
+		return state === this.goal;
 	}
 
-	checkSolvability(state: number[]) {
+	checkSolvability(state_: string) {
 		let inversion = 0;
-
+		let state = state_.split('');
 		for (let i = 0; i < state.length; i++) {
 			for (let j = i + 1; j < state.length; j++) {
-				if (state[i] > state[j] && state[i] != 0 && state[j] != 0)
+				if (state[i] > state[j] && state[i] != '0' && state[j] != '0')
 					inversion += 1;
 			}
 		}
@@ -91,9 +91,11 @@ export class EightPuzzle extends Problem<number[], string> {
 	}
 
 	h(node: Node) {
-		return (node.state as number[]).reduce(
+		const h = (node.state.split('') as string[]).reduce(
 			(p, c, i) => p + (c != this.goal[i] ? 1 : 0),
 			0
 		);
+		// console.log(h);
+		return h;
 	}
 }

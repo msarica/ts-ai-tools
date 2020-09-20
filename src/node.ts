@@ -77,7 +77,7 @@ export class Node<State = any, Action = any> {
 	/**
 	 * Return a list of nodes forming the path from the root to this node.
 	 */
-	path() {
+	path(): Node[] {
 		let node = this;
 		const pathBack = [];
 
@@ -95,8 +95,7 @@ export class Node<State = any, Action = any> {
 	// # want in other contexts.]
 
 	equalsTo(other: Node) {
-		// return JSON.stringify(this) === JSON.stringify(other);
-		return this.toString() === other.toString();
+		return this.hash() === other.hash();
 	}
 
 	// # We use the hash value of the state
@@ -104,6 +103,42 @@ export class Node<State = any, Action = any> {
 	// # object itself to quickly search a node
 	// # with the same state in a Hash Table
 	hash() {
-		return JSON.stringify(this.state);
+		return typeof this.state === 'string'
+			? this.state
+			: JSON.stringify(this.state);
+	}
+
+	/**
+	 * If a path to a goal was found, prints the cost and the sequence of actions
+		and states on a path from the initial state to the goal found
+	*/
+	printSolution(
+		// solution: Node,
+		actionPresentation: (n: Node) => string
+	) {
+		// if (!solution) {
+		// 	console.log('No solution found 🙁');
+		// 	return;
+		// }
+		let solution = this;
+
+		const pathCost = solution.pathCost;
+		const str = ['Path of cost: ', pathCost, ': '];
+		str.push(solution.path().length, ': ');
+
+		for (let node of solution.path()) {
+			if (!node.action) {
+				// if undefined/null initial state
+				str.push(node.state.toString(), ' ');
+			} else {
+				str.push(
+					`- ${actionPresentation(node)} -> [`,
+					node.state.toString(),
+					'] '
+				);
+			}
+		}
+
+		console.log(str.join(''));
 	}
 }

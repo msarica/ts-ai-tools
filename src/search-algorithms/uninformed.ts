@@ -132,8 +132,11 @@ export function bestFirstGraphSearch(
 	f = memoize(f, 'f') as any;
 
 	let node = new Node(problem.initial);
-	const frontier = new PriorityQueue('min', f, (o: Node, p: Node) =>
-		o.equalsTo(p)
+	const frontier = new PriorityQueue(
+		'min',
+		f,
+		(o: Node, p: Node) => o.equalsTo(p),
+		(p) => p.hash()
 	);
 	frontier.push(node);
 
