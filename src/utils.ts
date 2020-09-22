@@ -1,6 +1,8 @@
 import { Node } from './node';
 
 import m from 'memoizee';
+import { InstrumentedProblem } from './instrumented-problem';
+import { Problem } from './problem.abstract';
 
 const memoizedValues: any = {};
 
@@ -199,5 +201,57 @@ export function shuffle(array: any[]): void {
 		const temp = array[i];
 		array[i] = array[j];
 		array[j] = temp;
+	}
+}
+
+export function isSameArray<T>(arr1: T[], arr2: T[]) {
+	return arr1.every((v, i) => v === arr2[i]);
+}
+
+export function compareSearchers(
+	problem: Problem,
+	searchers: Function[],
+	actionRepresentationFn: (node: Node) => string
+) {
+	if (!(searchers && searchers.length)) {
+		console.log('No searcher found');
+		return;
+	}
+
+	// const doFn = (searcher: Function, problem: Problem) => {
+	// 	const p = new InstrumentedProblem(problem);
+	// 	searcher(p);
+	// 	return p;
+	// };
+
+	console.log('Solving ', problem.toString());
+	console.log('\n');
+	const successful = [];
+
+	console.log('searchers: ', searchers.map((s) => s.name).join(', '));
+
+	for (const alg of searchers) {
+		console.log('\n');
+		console.log('* ', alg.name, ':');
+		const problemWithStats = new InstrumentedProblem(problem);
+
+		const solution = alg(problemWithStats) as Node;
+		solution.printSolution(actionRepresentationFn);
+
+		if (!solution) {
+			console.log('No solution found 🙁');
+			continue;
+		}
+
+		successful.push({
+			name: alg.name,
+			stat: problemWithStats,
+		});
+	}
+	console.log('---------------');
+	console.log('\n');
+
+	for (let s of successful) {
+		console.log(s.name, ' '.repeat(40 - s.name.length), s.stat.toString());
 	}
 }

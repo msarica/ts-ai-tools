@@ -7,9 +7,8 @@ import {
 	depthLimitedSearch,
 	iterativeDeepeningSearch,
 } from '../search-algorithms/uninformed';
-import { compareSearchers, Problem } from '../search';
 import { Node } from '../node';
-import { PriorityQueue, show, memoize } from '../utils';
+import { PriorityQueue, show, memoize, compareSearchers } from '../utils';
 import { EightPuzzle } from '../problems/eight-puzzle';
 import {
 	aStarSearch,
@@ -41,45 +40,11 @@ export function solve8Puzzle(
 	if (!problem.checkSolvability(start)) {
 		console.log('this puzzle cannot be solvable');
 	}
-	// const reachableStates = problem.reachableStates()
 
-	// const potential = (capacities[0]+1) * (capacities[1]+1) * (capacities[2]+1);
-	// console.log()
-
-	const sucessfulSearchers = [];
-
-	console.log('searchers: ', searchers.map((s) => s.name).join(', '));
-
-	for (const alg of searchers) {
-		console.log('* ', alg.name, ':');
-
-		const solution = alg(problem);
-
-		if (!solution) {
-			console.log('No solution found 🙁');
-			continue;
-		}
-		solution.printSolution((n) => n.state);
-		sucessfulSearchers.push(alg);
-	}
-	console.log(
-		'SUMMARY: algorithm  <successors  goal_tests  states_generated  solution>'
-	);
-
-	if (sucessfulSearchers.length) {
-		compareSearchers([problem], '', sucessfulSearchers);
-	}
+	compareSearchers(problem, searchers, (n) => n.state);
 }
 
-const tests = [
-	[
-		// [0, 6, 1, 7, 2, 4, 3, 7, 8],
-		// [6, 2, 3, 5, 1, 7, 8, 4, 0],
-		// [1, 2, 3, 4, 5, 6, 7, 0, 8],
-		'061724358',
-		'012345678',
-	],
-];
+const tests = [['061724358', '012345678']];
 
 for (let test of tests) {
 	const [start, goal] = test;

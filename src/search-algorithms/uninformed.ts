@@ -1,5 +1,5 @@
 import { Node } from '../node';
-import { Problem } from '../search';
+import { Problem } from '../problem.abstract';
 import { PriorityQueue, memoize, MSet, NodeArray } from '../utils';
 
 /**

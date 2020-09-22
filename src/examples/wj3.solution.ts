@@ -8,7 +8,7 @@ import {
 	iterativeDeepeningSearch,
 } from '../search-algorithms/uninformed';
 import { WJ3, WJAction } from '../problems/wj3';
-import { compareSearchers, Problem } from '../search';
+import { compareSearchers } from '../utils';
 import { Node } from '../node';
 import { PriorityQueue, show } from '../utils';
 import {
@@ -37,41 +37,15 @@ export function wj3Solve(
 	searchers = defaultSearchers
 ) {
 	const problem = new WJ3(capacities, start, goal);
-	console.log('Solving ', problem.toString());
-	// const reachableStates = problem.reachableStates()
 
-	// const potential = (capacities[0]+1) * (capacities[1]+1) * (capacities[2]+1);
-	// console.log()
+	const actionRep = (n: Node) => {
+		const a = n.action as WJAction;
 
-	const sucessfulSearchers = [];
+		if (a.action == 'pour') return `pour ${a.which}, ${a.to}`;
+		return `${a.action} ${a.which}`;
+	};
 
-	console.log('searchers: ', searchers.map((s) => s.name).join(', '));
-
-	for (const alg of searchers) {
-		console.log('* ', alg.name, ':');
-
-		const solution = alg(problem);
-
-		if (!solution) {
-			console.log('No solution found 🙁');
-			continue;
-		}
-
-		solution.printSolution((n) => {
-			const a = n.action as WJAction;
-
-			if (a.action == 'pour') return `pour ${a.which}, ${a.to}`;
-			return `${a.action} ${a.which}`;
-		});
-		sucessfulSearchers.push(alg);
-	}
-	console.log(
-		'SUMMARY: algorithm  <successors  goal_tests  states_generated  solution>'
-	);
-
-	if (sucessfulSearchers.length) {
-		compareSearchers([problem], '', sucessfulSearchers);
-	}
+	compareSearchers(problem, searchers, actionRep);
 }
 
 const tests = [

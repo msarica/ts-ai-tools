@@ -1,4 +1,5 @@
-import { Problem } from '../search';
+import { Problem } from '../problem.abstract';
+
 // ______________________________________________________________________________
 // Informed (Heuristic) Search
 

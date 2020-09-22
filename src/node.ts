@@ -1,4 +1,4 @@
-import { Problem } from './search';
+import { Problem } from './problem.abstract';
 
 /**
  * A node in a search tree. Contains a pointer to the parent (the node
