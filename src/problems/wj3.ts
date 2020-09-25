@@ -33,7 +33,7 @@ export class WJ3 extends Problem<number[], WJAction> {
 
 			state.forEach((j_, ji_) => {
 				const c_ = this.capacities[ji_];
-				if (j > 0 && j_ < c_) {
+				if (ji != ji_ && j > 0 && j_ < c_) {
 					legal.push({
 						action: 'pour',
 						which: ji,
