@@ -189,6 +189,11 @@ export class MSet extends Set {
 	}
 }
 
+/**
+ * Return an element with highest fn(seq[i]) score; break ties at random.
+ * @param sequence
+ * @param fn
+ */
 export function argMaxRandomTie<T>(sequence: T[], fn: (s: T) => number): T {
 	shuffle(sequence);
 
@@ -199,6 +204,26 @@ export function argMaxRandomTie<T>(sequence: T[], fn: (s: T) => number): T {
 		}))
 		.sort((a, b) => a.v - b.v)
 		.pop();
+
+	return p && (p.obj as any);
+}
+
+/**
+ * Return a minimum element of seq; break ties at random.
+ * @param sequence
+ * @param fn
+ */
+export function argMinRandomTie<T>(sequence: T[], fn: (s: T) => number): T {
+	shuffle(sequence);
+
+	let sorted = sequence
+		.map((s) => ({
+			obj: s,
+			v: fn(s),
+		}))
+		.sort((a, b) => b.v - a.v);
+
+	const p = sorted.pop();
 
 	return p && (p.obj as any);
 }

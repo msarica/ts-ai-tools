@@ -4,7 +4,7 @@
  */
 
 import { Problem } from '../problem.abstract';
-import { Counter, DefaultDict } from '../utils';
+import { argMinRandomTie, Counter, DefaultDict } from '../utils';
 import {
 	difference,
 	differenceUpdate,
@@ -194,6 +194,8 @@ export abstract class CSP extends Problem {
 		const removals = this.curr_domains[variable]
 			.filter((a) => a !== value)
 			.map((a) => [variable, a]);
+
+		this.curr_domains[variable] = [value];
 		return removals;
 	}
 
@@ -215,7 +217,7 @@ export abstract class CSP extends Problem {
 	 * Return all values for var that aren't currently ruled out.
 	 * @param variable
 	 */
-	choices(variable) {
+	choices(variable): any[] {
 		return (this.curr_domains || this.domains)[variable];
 	}
 
@@ -578,4 +580,184 @@ export function AC4(
 	}
 
 	return [true, checks];
+}
+
+// ______________________________________________________________________________
+// CSP Backtracking Search
+
+// Variable ordering
+
+/**
+ * The default variable order.
+ * @param assignment
+ * @param csp
+ */
+export function firstUnassignedVariable(assignment, csp: CSP) {
+	for (let variable of csp.variables) {
+		if (!assignment[variable]) {
+			return variable;
+		}
+	}
+}
+
+/**
+ * Minimum-remaining-values heuristic.
+ * @param assignment
+ * @param csp
+ */
+export function mrv(assignment, csp: CSP) {
+	let vars = csp.variables.filter((v) => !assignment[v]);
+
+	return argMinRandomTie(vars, (v) => numLegalValues(csp, v, assignment));
+}
+
+export function numLegalValues(csp: CSP, variable, assignment) {
+	if (csp.curr_domains) {
+		return csp.curr_domains[variable].length;
+	} else {
+		return (csp.domains[variable] as any[])
+			.map((val) => csp.nconflicts(variable, val, assignment) === 0)
+			.filter((val) => !!val).length;
+	}
+}
+
+// value ordering
+
+/**
+ * The default value order.
+ */
+export function unorderedDomainValues(variable, assignment, csp: CSP) {
+	return csp.choices(variable);
+}
+
+/**
+ * Least-constraining-values heuristic.
+ * @param variable
+ * @param assingment
+ * @param csp
+ */
+export function lcv(variable, assingment, csp: CSP) {
+	const f = (val) => csp.nconflicts(variable, val, assingment);
+
+	let sorted = csp
+		.choices(variable)
+		.map((v) => ({
+			sortValue: f(v),
+			item: v,
+		}))
+		.sort((a, b) => a.sortValue - b.sortValue);
+
+	return sorted.shift().item;
+}
+
+// Inference
+
+export function noInference(
+	csp: CSP,
+	variable,
+	value,
+	assignment,
+	removals: any[]
+) {
+	return true;
+}
+
+/**
+ * Prune neighbor values inconsistent with var=value.
+ * @param csp
+ * @param variable
+ * @param value
+ * @param assignment
+ */
+export function forwardChecking(
+	csp: CSP,
+	variable,
+	value,
+	assignment,
+	removals: any[]
+) {
+	csp.supportPruning();
+	for (let B of csp.neighbors[variable]) {
+		if (!assignment[B]) {
+			for (let b of csp.curr_domains[B]) {
+				if (!csp.constraints(variable, value, B, b)) {
+					csp.prune(B, b, removals);
+				}
+			}
+
+			if (!csp.curr_domains[B].length) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Maintain arc consistency.
+ * @param csp
+ * @param variable
+ * @param value
+ * @param assignment
+ * @param removals
+ */
+export function mac(
+	csp: CSP,
+	variable,
+	value,
+	assignment,
+	removals,
+	constraint_propagation = AC3b
+) {
+	let queue = csp.neighbors[variable].map((X) => [X, variable]);
+
+	return constraint_propagation(csp, queue, removals);
+}
+
+// The search, proper
+
+/**
+ * [Figure 6.5]
+ * @param csp
+ * @param selectUnassignedVariable
+ * @param orderDomainValues
+ * @param inference
+ */
+export function backtrackingSearch(
+	csp: CSP,
+	selectUnassignedVariable = firstUnassignedVariable,
+	orderDomainValues = unorderedDomainValues,
+	inference = noInference
+) {
+	const backtrack = (assignment) => {
+		if (Object.keys(assignment).length === csp.variables.length) {
+			return assignment;
+		}
+		let variable = selectUnassignedVariable(assignment, csp);
+		for (let value of orderDomainValues(variable, assignment, csp)) {
+			if (csp.nconflicts(variable, value, assignment) === 0) {
+				csp.assign(variable, value, assignment);
+				let removals = csp.suppose(variable, value);
+
+				if (inference(csp, variable, value, assignment, removals)) {
+					let result = backtrack(assignment);
+					if (result) {
+						return result;
+					}
+				}
+
+				csp.restore(removals);
+			}
+		}
+		csp.unassign(variable, assignment);
+		return null;
+	};
+
+	let result = backtrack({});
+	if (result && !csp.goalTest(result)) {
+		throw new Error('Invalid result');
+	}
+
+	return result;
 }

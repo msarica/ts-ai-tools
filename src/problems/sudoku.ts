@@ -109,9 +109,6 @@ export class Sudoku extends CSP {
 	result(state: any, action: any) {
 		throw new Error('Method not implemented.');
 	}
-	goalTest(state: any): boolean {
-		throw new Error('Method not implemented.');
-	}
 }
 
 /**

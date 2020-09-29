@@ -1,4 +1,11 @@
-import { AC3, AC3b, AC4 } from '../csp/csp';
+import {
+	AC3,
+	AC3b,
+	AC4,
+	backtrackingSearch,
+	forwardChecking,
+	mrv,
+} from '../csp/csp';
 import { Sudoku } from '../problems/sudoku';
 
 const easy1 =
@@ -6,14 +13,16 @@ const easy1 =
 const harder1 =
 	'4173698.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......';
 
-const sudoku = new Sudoku(easy1);
-// const sudoku = new Sudoku(harder1);
+// const sudoku = new Sudoku(easy1);
+const sudoku = new Sudoku(harder1);
 
 export function solveSudoku(problem: Sudoku) {
 	// const a = AC3(problem);
 	// const a = AC3b(problem);
-	const a = AC4(problem);
-	// console.log(a);
+	// const a = AC4(problem);
+	const a = backtrackingSearch(problem, mrv, undefined, forwardChecking);
+
+	console.log(a);
 	problem.display(problem.inferAssignment());
 }
 
