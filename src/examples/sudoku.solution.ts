@@ -1,4 +1,4 @@
-import { AC3, AC3b } from '../csp/csp';
+import { AC3, AC3b, AC4 } from '../csp/csp';
 import { Sudoku } from '../problems/sudoku';
 
 const easy1 =
@@ -11,7 +11,8 @@ const sudoku = new Sudoku(easy1);
 
 export function solveSudoku(problem: Sudoku) {
 	// const a = AC3(problem);
-	const a = AC3b(problem);
+	// const a = AC3b(problem);
+	const a = AC4(problem);
 	// console.log(a);
 	problem.display(problem.inferAssignment());
 }

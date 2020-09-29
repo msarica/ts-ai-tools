@@ -321,3 +321,62 @@ export function union<T>(s1: Set<T>, s2: Set<T>) {
 		s1.add(elem);
 	}
 }
+
+export class Counter<T = any> {
+	protected map = new Map();
+	constructor(public hasFn?: Function) {}
+
+	private hashed(v: T) {
+		return (this.hasFn && this.hasFn(v)) || v;
+	}
+
+	increment(v: T) {
+		return this.increaseBy(v, 1);
+	}
+
+	decrement(v: T) {
+		return this.increaseBy(v, -1);
+	}
+
+	increaseBy(v: T, increment: number) {
+		let x = 0;
+		v = this.hashed(v);
+		if (this.map.has(v)) {
+			x = this.map.get(v);
+		}
+
+		this.map.set(v, x + increment);
+	}
+
+	valueOf(v: T) {
+		v = this.hashed(v);
+		return this.map.get(v) || 0;
+	}
+}
+
+export class DefaultDict<TKey = any, TValue = any> {
+	protected map = new Map<string, Set<TValue>>();
+	constructor(public hasFn?: Function) {}
+
+	private hashed(v: TKey): string {
+		return (this.hasFn && this.hasFn(v)) || v;
+	}
+
+	get(v: TKey) {
+		let vv = this.hashed(v) as string;
+		let s: Set<TValue>;
+		if (!this.map.has(vv)) {
+			s = new Set<TValue>();
+			this.map.set(vv, s);
+		} else {
+			s = this.map.get(vv);
+		}
+
+		return s;
+	}
+
+	addFor(v: TKey, input: TValue) {
+		let s = this.get(v);
+		s.add(input);
+	}
+}

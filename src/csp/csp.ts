@@ -4,6 +4,7 @@
  */
 
 import { Problem } from '../problem.abstract';
+import { Counter, DefaultDict } from '../utils';
 import {
 	difference,
 	differenceUpdate,
@@ -365,7 +366,7 @@ export function revise(csp: CSP, Xi: number, Xj: number, removals, checks = 0) {
 
 export function AC3b(
 	csp: CSP,
-	queue = null,
+	queue: any[] = null,
 	removals = null,
 	arcHeuristic = dom_j_up
 ) {
@@ -376,7 +377,7 @@ export function AC3b(
 		queue = Array.from(new Set(queue));
 	}
 	csp.supportPruning();
-	queue = arcHeuristic(csp, queue);
+	queue = (arcHeuristic(csp, queue) as unknown) as any[];
 	let checks: number = 0;
 
 	while (queue.length) {
@@ -408,8 +409,12 @@ export function AC3b(
 			}
 		}
 
-		if (queue.has([Xj, Xi])) {
-			//check
+		const contains =
+			queue instanceof PriorityQueue
+				? queue.has([Xj, Xi])
+				: queue.findIndex(([a, b]) => a === Xj && b === Xi) > -1;
+
+		if (contains) {
 			if (queue instanceof Set) {
 				// or queue -= {(Xj, Xi)} or queue.remove((Xj, Xi))
 				differenceUpdate(queue, new Set([Xj, Xi]));
@@ -498,3 +503,79 @@ export function partition(csp: CSP, Xi: number, Xj: number, checks = 0) {
 }
 
 // Constraint Propagation with AC4
+
+export function AC4(
+	csp: CSP,
+	queue: any[] = null,
+	removals = null,
+	arcHeuristic = dom_j_up
+) {
+	if (!queue) {
+		queue = csp.variables
+			.map((Xi) => csp.neighbors[Xi].map((Xk) => [Xi, Xk]))
+			.reduce((prev, cur) => [...prev, ...cur], []);
+		queue = Array.from(new Set(queue));
+	}
+
+	csp.supportPruning();
+	queue = (arcHeuristic(csp, queue) as unknown) as any[];
+	const supportCounter = new Counter<[number, number, number]>(
+		(a, b) => `${a}_${b}`
+	);
+	const variableValuePairsSupported = new DefaultDict<
+		[number, number],
+		[number, number]
+	>(([a, b]) => `${a}_${b}`);
+	const unsupportedVariableValuePairs = [];
+	let checks: number = 0;
+
+	// construction and initialization of support sets
+	while (queue.length) {
+		let [Xi, Xj] = queue.pop();
+		let revised = false;
+
+		for (let x of csp.curr_domains[Xi]) {
+			for (let y of csp.curr_domains[Xj]) {
+				if (csp.constraints(Xi, x, Xj, y)) {
+					supportCounter.increment([Xi, x, Xj]);
+					variableValuePairsSupported.addFor([Xj, y], [Xi, x]);
+				}
+				checks += 1;
+			}
+			if (supportCounter.valueOf([Xi, x, Xj]) === 0) {
+				csp.prune(Xi, x, removals);
+				revised = true;
+				unsupportedVariableValuePairs.push([Xi, x]);
+			}
+		}
+
+		if (revised) {
+			if (!csp.curr_domains[Xi].length) {
+				return [false, checks]; // CSP is inconsistent
+			}
+		}
+	}
+
+	//  propagation of removed values
+	while (unsupportedVariableValuePairs.length) {
+		let [Xj, y] = unsupportedVariableValuePairs.pop();
+		for (let [Xi, x] of variableValuePairsSupported.get([Xj, y]).values()) {
+			let revised = false;
+			if (csp.curr_domains[Xi].indexOf(x) > -1) {
+				supportCounter.decrement([Xi, x, Xj]);
+				if (supportCounter.valueOf([Xi, x, Xj]) === 0) {
+					csp.prune(Xi, x, removals);
+					revised = true;
+					unsupportedVariableValuePairs.push([Xi, x]);
+				}
+			}
+			if (revised) {
+				if (!csp.curr_domains[Xi].length) {
+					return [false, checks]; // CSP is inconsistent
+				}
+			}
+		}
+	}
+
+	return [true, checks];
+}
