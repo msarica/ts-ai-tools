@@ -9,9 +9,12 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
-		"memoizee": "0.4.14"
+		"memoizee": "0.4.14",
+		"prompt-sync": "4.2.0"
 	},
 	"devDependencies": {
-		"@types/memoizee": "0.4.4"
+		"@types/memoizee": "0.4.4",
+		"@types/node": "14.11.2",
+		"@types/prompt-sync": "4.1.0"
 	}
 }

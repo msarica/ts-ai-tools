@@ -405,3 +405,18 @@ export class DefaultDict<TKey = any, TValue = any> {
 		s.add(input);
 	}
 }
+
+export function range(range_: number): number[];
+export function range(start: number, end: number): number[];
+export function range(start: number, end: number, step: number): number[];
+export function range(start: number, end?: number, step: number = 1): number[] {
+	step = step || 1;
+	if (end === undefined) {
+		end = start;
+		start = 0;
+	}
+
+	const n = [];
+	for (let i = start; i < end; i += step) n.push(i);
+	return n;
+}
