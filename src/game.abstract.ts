@@ -231,7 +231,6 @@ export function alphaBetaSearch(game: Game, state: GameState): PlayerMove {
 			return game.utility(state, player);
 		}
 		let v = Infinity;
-		let move = null;
 		for (let a of game.actions(state)) {
 			v = Math.min(v, maxValue(game.result(state, a), alpha, beta));
 
