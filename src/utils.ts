@@ -3,6 +3,8 @@ import { Node } from './node';
 import m from 'memoizee';
 import { InstrumentedProblem } from './instrumented-problem';
 import { Problem } from './problem.abstract';
+import { expressions } from './logic/logic.vars';
+import { Expr } from './logic/logic.classes';
 
 const memoizedValues: any = {};
 
@@ -347,6 +349,49 @@ export function union<T>(s1: Set<T>, s2: Set<T>) {
 	}
 }
 
+export function unionReturn<T>(s1: Set<T>, s2: Set<T>) {
+	const s = new Set(s1);
+	for (let elem of s2) {
+		s.add(elem);
+	}
+	return s;
+}
+
+export function removeAll<T>(item: T, set: any) {
+	if (typeof set === 'string') {
+		let r = new RegExp(item as any, 'g');
+		return set.replace(r, '');
+	}
+	if (set instanceof Set) {
+		let s = new Set(set);
+		s.delete(item);
+		return s;
+	}
+
+	if (Array.isArray(set)) {
+		return set.filter((i) => i !== item);
+	}
+
+	throw new Error('Not supported set');
+}
+
+export function isSubset<T>(s1: Set<T>, sub: Set<T>) {
+	for (let elem of sub) {
+		if (!s1.has(elem)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+export function areTupplesEqual<T>(t1: T[], t2: T[]) {
+	if (t1.length !== t2.length) return false;
+
+	for (let i = 0; i < t1.length; i++) {
+		if (t1[i] !== t2[i]) return false;
+	}
+	return true;
+}
 export class Counter<T = any> {
 	protected map = new Map();
 	constructor(public hasFn?: Function) {}
@@ -419,4 +464,293 @@ export function range(start: number, end?: number, step: number = 1): number[] {
 	const n = [];
 	for (let i = start; i < end; i += step) n.push(i);
 	return n;
+}
+
+export function first<T>(iterable: any, defaultValue = false) {
+	try {
+		for (let item of iterable) {
+			return item;
+		}
+	} catch (err) {
+		console.log(err);
+
+		return defaultValue;
+	}
+}
+
+/**
+ * Yield the subexpressions of an Expression (including x itself).
+ * @param x
+ */
+export function* subexpressions(x) {
+	yield x;
+	if (x instanceof Expr) {
+		// for arg in x.args:
+		// 	yield from subexpressions(arg)
+		for (let arg of x.args) {
+			for (let a of subexpressions(arg)) {
+				yield a;
+			}
+		}
+	}
+}
+
+export function hash(str: string) {
+	let hash = 0;
+	if (str.length == 0) {
+		return hash;
+	}
+	for (let i = 0; i < str.length; i++) {
+		let char = str.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash = hash & hash; // Convert to 32bit integer
+	}
+	return hash;
+}
+
+export function isLowerCase(letter: string) {
+	if (letter.length > 1) throw new Error('Not a single character');
+
+	if (letter === letter.toLowerCase()) {
+		return true;
+	}
+	return false;
+}
+
+export function isUpperCase(letter: string) {
+	if (letter.length > 1) throw new Error('Not a single character');
+
+	if (letter === letter.toUpperCase()) {
+		return true;
+	}
+	return false;
+}
+
+export function isAlpha(ch: string) {
+	return /^[A-Z]$/i.test(ch);
+}
+
+export function extend<T, K>(s: Map<T, K>, variable: T, value: K) {
+	let m;
+	if (s instanceof Map) {
+		m = new Map(s);
+	} else {
+		m = new Map();
+		Object.entries(s).forEach(([key, val]) => {
+			m.set(key, val);
+		});
+	}
+	m.set(variable, value);
+	return m;
+}
+
+const infixOps = '==> <== <=>'.split(' ');
+const specialCharacters = '|&^~';
+
+/**
+ * Given a str, return a new str with ==> replaced by |'==>'|, etc.
+    >>> expr_handle_infix_ops('P ==> Q')
+    "P |'==>'| Q"
+ * @param x 
+ */
+export function exprHandleInfixOps(x: string) {
+	// for op in infix_ops:
+	//     x = x.replace(op, '|' + repr(op) + '|')
+	// return x
+	for (let op of infixOps) {
+		let re = new RegExp(op, 'g');
+		x = x.replace(re, '|"' + op + '"|');
+	}
+
+	let m = lex(x);
+	let invert = false;
+	let paranOpen = false;
+
+	const construct = (a: any[]) => {
+		return a.reduce((prev: string, cur, i) => {
+			if (Array.isArray(cur)) {
+				if (paranOpen) {
+					prev += construct(cur) + ')';
+					paranOpen = false;
+				} else {
+					prev += '(' + construct(cur) + ')';
+				}
+
+				return prev;
+			}
+			if (cur == '~') {
+				invert = true;
+				return prev;
+			}
+			if (invert) {
+				invert = false;
+				prev += cur + '.invert()';
+				if (paranOpen) {
+					paranOpen = false;
+					prev += ')';
+				}
+				return prev;
+			}
+
+			let add =
+				cur === '|'
+					? '.or('
+					: cur === '&'
+					? '.and('
+					: cur === '^'
+					? '.xor('
+					: false;
+			if (add) {
+				paranOpen = true;
+				prev += add;
+				return prev;
+			}
+
+			let closeText = '';
+			if (paranOpen) {
+				paranOpen = false;
+				closeText = ')';
+			}
+			prev += cur + closeText;
+
+			return prev;
+		}, '');
+	};
+
+	x = construct(m);
+	return x;
+}
+
+export function lex(input: string) {
+	const quotation = '"';
+
+	let startNew = true;
+	let result = [];
+	let temp = result;
+	let objs = [];
+
+	let lp = 0;
+	let rp = 0;
+	let quote = null;
+
+	const appendToLast = (i: string) => {
+		let lastIndex = temp.length == 0 ? 0 : temp.length - 1;
+		temp[lastIndex] = (temp[lastIndex] || '') + i;
+	};
+
+	let prevCh = null;
+	let tempPrev = null;
+	for (let i of input) {
+		prevCh = tempPrev;
+		tempPrev = i;
+		// console.log(i);
+
+		// ============
+		if (quote) {
+			if (quote === i) {
+				quote = null;
+			}
+			// temp.push(i);
+			appendToLast(i);
+
+			continue;
+		}
+
+		if (quotation.includes(i)) {
+			quote = i;
+			temp.push(i);
+			continue;
+		}
+		// ===================
+		if (i === ' ') {
+			continue;
+		}
+
+		if (i === '(') {
+			lp += 1;
+			let temp2 = [];
+			temp.push(temp2);
+			objs.push(temp);
+			temp = temp2;
+
+			continue;
+		}
+
+		if (i === ')') {
+			rp += 1;
+			temp = objs.pop();
+			continue;
+		}
+
+		if (specialCharacters.indexOf(i) > -1) {
+			if (prevCh == i) {
+				appendToLast(i);
+			} else {
+				temp.push(i);
+			}
+			startNew = true;
+		} else {
+			if (startNew) {
+				startNew = false;
+				temp.push('');
+			}
+
+			appendToLast(i);
+		}
+	}
+
+	if (lp !== rp) {
+		throw new Error('Paranthesis dont match');
+	}
+	// console.log(result);
+	return result;
+	// console.log(toString(result));
+}
+
+/**
+ * Like defaultdict, but the default_factory is a function of the key.
+    >>> d = defaultkeydict(len); d['four']
+    4
+ */
+export class Defaultkeydict {
+	static map = new Map();
+	get map() {
+		return Defaultkeydict.map;
+	}
+
+	constructor(public func: Function) {}
+
+	// def __missing__(self, key):
+	// 	self[key] = result = self.default_factory(key)
+	// 	return result
+	get(key: string) {
+		let val = this.map.get(key);
+		if (val) return val;
+
+		val = this.func(key);
+		this.map.set(key, val);
+		return val;
+	}
+}
+
+/**
+ * Shortcut to create an Expression. x is a str in which:
+    - identifiers are automatically defined as Symbols.
+    - ==> is treated as an infix |'==>'|, as are <== and <=>.
+    If x is already an Expression, it is returned unchanged. Example:
+    >>> expr('P & Q ==> Q')
+    ((P & Q) ==> Q)
+ * @param x 
+ */
+export function expr(str: string | Expr): Expr {
+	// return eval(expr_handle_infix_ops(x), defaultkeydict(Symbol)) if isinstance(x, str) else x
+	if (typeof str === 'string') {
+		const [A, B, C, D, E, F, G, P, Q, a, x, y, z, u] = expressions;
+		// console.log(P);
+		let ex = exprHandleInfixOps(str);
+
+		return eval(ex);
+	}
+
+	return str;
 }
