@@ -554,41 +554,29 @@ const specialCharacters = '|&^~';
  * @param x 
  */
 export function exprHandleInfixOps(x: string) {
-	// for op in infix_ops:
-	//     x = x.replace(op, '|' + repr(op) + '|')
-	// return x
 	for (let op of infixOps) {
 		let re = new RegExp(op, 'g');
 		x = x.replace(re, '|"' + op + '"|');
 	}
 
+	// ----- put parantesis ~P
+	let r = new RegExp('~s*[A-Za-z]', 'g');
+
+	let matches = x.match(r) || [];
+	for (let m of matches) {
+		x = x.replace(m, '(' + m + ')');
+	}
+
+	//------
 	let m = lex(x);
-	let invert = false;
-	let paranOpen = false;
+	fixOrder(m);
 
 	const construct = (a: any[]) => {
-		return a.reduce((prev: string, cur, i) => {
+		let paranOpen = false;
+		let result = a.reduce((prev: string, cur, i) => {
 			if (Array.isArray(cur)) {
-				if (paranOpen) {
-					prev += construct(cur) + ')';
-					paranOpen = false;
-				} else {
-					prev += '(' + construct(cur) + ')';
-				}
+				prev += '(' + construct(cur) + ')';
 
-				return prev;
-			}
-			if (cur == '~') {
-				invert = true;
-				return prev;
-			}
-			if (invert) {
-				invert = false;
-				prev += cur + '.invert()';
-				if (paranOpen) {
-					paranOpen = false;
-					prev += ')';
-				}
 				return prev;
 			}
 
@@ -599,10 +587,17 @@ export function exprHandleInfixOps(x: string) {
 					? '.and('
 					: cur === '^'
 					? '.xor('
+					: cur === '~'
+					? '.invert()'
 					: false;
+
 			if (add) {
-				paranOpen = true;
 				prev += add;
+				if (paranOpen) {
+					paranOpen = false;
+					prev += ')';
+				}
+				paranOpen = cur === '~' ? false : true;
 				return prev;
 			}
 
@@ -615,10 +610,39 @@ export function exprHandleInfixOps(x: string) {
 
 			return prev;
 		}, '');
+
+		if (paranOpen) {
+			result += ')';
+		}
+		return result;
 	};
 
 	x = construct(m);
 	return x;
+}
+
+export function fixOrder(input: string[]) {
+	let skipNext = false;
+	for (let ix in input) {
+		let idx = +ix;
+
+		if (skipNext) {
+			skipNext = false;
+			continue;
+		}
+		let val = input[idx];
+
+		if (val === '~') {
+			val = input[idx + 1];
+			input[idx] = val;
+			input[idx + 1] = '~';
+			skipNext = true;
+		}
+
+		if (Array.isArray(val)) {
+			fixOrder(val);
+		}
+	}
 }
 
 export function lex(input: string) {

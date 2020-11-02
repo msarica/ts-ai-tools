@@ -310,7 +310,7 @@ export function parseDefiniteClause(s) {
     True
     
 	*/
-export function ttEntails(kb, alpha: Expr | string) {
+export function ttEntails(kb: Expr | BoolExpr, alpha: Expr | string) {
 	//    assert not variables(alpha)
 	//    symbols = list(prop_symbols(kb & alpha))
 	//    return tt_check_all(kb, alpha, symbols, {})
@@ -446,7 +446,7 @@ export function ttTrue(s) {
 	//    return tt_entails(True, s)
 
 	s = expr(s);
-	return ttEntails(new BoolExpr(true as any), s);
+	return ttEntails(new BoolExpr(true), s);
 }
 
 export function isValue(x: BoolExpr, val: boolean) {
@@ -465,23 +465,24 @@ export function plTrue(
 	exp: Expr,
 	model: Map<Expr, unknown> = new Map()
 ): BoolExpr {
-	// if (typeof exp === 'boolean') {
-	// 	return exp;
-	// }
-	// console.log(exp.toString());
-	if (exp instanceof BoolExpr && typeof exp.op === 'boolean') {
+	if (exp instanceof BoolExpr) {
 		return exp;
 	}
 
 	let [op, args]: [string | Expr, [Expr, Expr]] = [exp.op, exp.args as any];
 
 	if (isPropSymbol(op)) {
-		return model.get(exp) as BoolExpr;
+		let bool = model.get(exp) as BoolExpr;
+
+		if (bool == null || bool instanceof BoolExpr) {
+			return bool;
+		}
+		return new BoolExpr(bool);
 	}
 
 	if (op == '~') {
 		let p = plTrue(args[0], model);
-		if (p === null) {
+		if (!p) {
 			return null;
 		}
 		return p.invert();
@@ -491,6 +492,7 @@ export function plTrue(
 		let result = new BoolExpr(false);
 		for (let arg of args) {
 			let p = plTrue(arg, model);
+			// console.log(p);
 			// if (p === true) {
 			if (isValue(p, true)) {
 				// return true;
@@ -1241,7 +1243,10 @@ export function jw2(symbols, clauses) {
     True
     
 	*/
-export function dpllSatisfiable(s, branching_heuristic = noBranchingHeuristic) {
+export function dpllSatisfiable(
+	s: Expr,
+	branching_heuristic = noBranchingHeuristic
+) {
 	//    return dpll(conjuncts(to_cnf(s)), prop_symbols(s), {}, branching_heuristic)
 
 	const toNf = toCnf(s);
@@ -1303,6 +1308,7 @@ export function dpll(
 	if (!unknownClauses.length) return model;
 
 	let [P, value] = findPureSymbol(symbols, unknownClauses);
+	value = toBoolExpr(value as BoolExpr);
 
 	if (P) {
 		let rem = removeAll(P, symbols) as any;
@@ -1311,6 +1317,8 @@ export function dpll(
 	}
 
 	[P, value] = findUnitClause(clauses, model);
+	value = toBoolExpr(value as BoolExpr);
+
 	if (P) {
 		let rem = removeAll(P, symbols) as any;
 		let ex = extend(model, P, value);
@@ -1318,21 +1326,31 @@ export function dpll(
 	}
 
 	[P, value] = branching_heuristic(symbols, unknownClauses);
+	value = toBoolExpr(value as BoolExpr);
+	let d1 = () =>
+		dpll(
+			clauses,
+			removeAll(P, symbols) as any,
+			extend(model, P, value),
+			branching_heuristic
+		);
 
-	let d1 = dpll(
-		clauses,
-		removeAll(P, symbols) as any,
-		extend(model, P, value),
-		branching_heuristic
-	);
-	let d2 = dpll(
-		clauses,
-		removeAll(P, symbols) as any,
-		extend(model, P, value.invert()),
-		branching_heuristic
-	);
+	let d2 = () =>
+		dpll(
+			clauses,
+			removeAll(P, symbols) as any,
+			extend(model, P, value.invert()),
+			branching_heuristic
+		);
 
-	return d1 || d2;
+	return d1() || d2();
+}
+
+export function toBoolExpr(val: boolean | BoolExpr) {
+	if (typeof val === 'boolean') {
+		return new BoolExpr(val);
+	}
+	return val;
 }
 
 /**

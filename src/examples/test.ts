@@ -17,10 +17,16 @@ import { P, Q } from '../logic/logic.vars';
 // ((A → B) → A) → A
 // const x = ttTrue(expr('(( A ==> B ) ==> A ) ==> A'));
 // const x = ttTrue(expr('A & ~A'));
+const x = ttTrue(expr('(P & Q ) ==> (P)'));
 
 // const x = ttTrue(P.or('==>').or(Q).or('<=>').or(P.invert().or(Q)));
 
 // const x = exprHandleInfixOps('(P & Q) ==> Q');
-const x = dpllSatisfiable(expr(' P & G'));
+// const x = dpllSatisfiable(expr(' P & G'));
+// const x = dpllSatisfiable(expr('P <=> ~(~P)'));
+// const x = dpllSatisfiable(expr('P ==> (~P | P)')); //P → ¬ P v P
+// const x = dpllSatisfiable(expr('P & Q ==> P')); // ¬ (P ∨ ¬ P)
+
+// const x = dpllSatisfiable(expr(P.or('<=>').or(P.invert().invert()) as any));
 
 console.log(x);
